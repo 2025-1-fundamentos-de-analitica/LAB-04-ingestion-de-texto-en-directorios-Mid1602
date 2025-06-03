@@ -4,7 +4,34 @@
 """
 Escriba el codigo que ejecute la accion solicitada en cada pregunta.
 """
+import os
+import glob
+import pandas as pd # type: ignore
 
+
+def cargar_y_procesar_archivos(ruta_base, tipo_sentimiento):
+    datos = []
+    patron_ruta = os.path.join(ruta_base, tipo_sentimiento, "*.txt")
+    archivos = glob.glob(patron_ruta)
+
+    for ruta_archivo in archivos:
+        with open(ruta_archivo, "r") as f:
+            frase = f.read()
+            frase_limpia = frase.strip().replace('\n', ' ').replace('\r', ' ')
+            frase_limpia = " ".join(frase_limpia.split())
+            datos.append((frase_limpia, tipo_sentimiento))
+    return datos
+
+def crear_dataset_desde_directorio(ruta_directorio_base):
+    todos_los_datos_frases = []
+    sentimientos = ["positive", "negative", "neutral"]
+
+    for sentimiento in sentimientos:
+        frases_para_sentimiento = cargar_y_procesar_archivos(ruta_directorio_base, sentimiento)
+        todos_los_datos_frases.extend(frases_para_sentimiento)
+
+    dataframe = pd.DataFrame(todos_los_datos_frases, columns=["phrase", "target"])
+    return dataframe
 
 def pregunta_01():
     """
@@ -68,6 +95,22 @@ def pregunta_01():
     |  3 | Both operating profit and net sales for the three-month period increased , respectively from EUR16 .0 m and EUR139m , as compared to the corresponding quarter in 2006 | positive |
     |  4 | Tampere Science Parks is a Finnish company that owns , leases and builds office properties and it specialises in facilities for technology-oriented businesses         | neutral  |
     ```
-
-
     """
+    ruta_base_entrenamiento = os.path.join("files", "input", "input", "train")
+    ruta_base_prueba = os.path.join("files", "input", "input", "test")
+
+    df_entrenamiento = crear_dataset_desde_directorio(ruta_base_entrenamiento)
+
+    df_prueba = crear_dataset_desde_directorio(ruta_base_prueba)
+    directorio_salida = os.path.join("files", "output")
+
+    if not os.path.exists(directorio_salida):
+        os.makedirs(directorio_salida)
+
+    ruta_salida_entrenamiento = os.path.join(directorio_salida, "train_dataset.csv")
+    ruta_salida_prueba = os.path.join(directorio_salida, "test_dataset.csv")
+
+    df_entrenamiento.to_csv(ruta_salida_entrenamiento, index=False, sep=",")
+
+    df_prueba.to_csv(ruta_salida_prueba, index=False, sep=",")
+    
